@@ -1,0 +1,48 @@
+version: '3.8'
+#version: '3'
+volumes:
+  prometheus_data:
+  grafana-data:
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./data/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+    - 9090:9090
+    networks:
+    - monitoring
+  app:
+    container_name: app
+    build: ./flask_api/.
+    ports:
+    - "5000:5000"
+    volumes:
+    - "./flask_api/app.py:/app.py"
+    networks:
+    - monitoring
+  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+    - 3000:3000
+    restart: unless-stopped
+    volumes:
+      - ./data/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./data/grafana/grafana:/var/lib/grafana
+    networks:
+    - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
